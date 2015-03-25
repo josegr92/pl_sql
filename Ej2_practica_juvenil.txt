@@ -1,0 +1,110 @@
+
+create or replace procedure principal(p_modulo asignaturas.nombre%type)
+is
+
+    cursor c_notas is
+    select apenom, nota
+    from alumnos a, notas n
+    where a.dni=n.dni
+    and n.cod = (select cod
+                from asignaturas
+                where nombre=p_modulo);
+    v_notas c_notas%rowtype;
+    cont_sus NUMBER(10):=0;
+    cont_ap  NUMBER(10):=0;
+    cont_not NUMBER(10):=0;
+    cont_sob NUMBER(10):=0;
+    v_nom_max alumnos.apenom%type:='';
+    v_nota_max notas.nota%type:=-1;
+    v_nom_min alumnos.apenom%type:='';
+    v_nota_min notas.nota%type:=11;
+
+begin
+
+    open c_notas;
+    fetch c_notas into v_notas;
+    while c_notas%FOUND loop
+        MostrarAlumnoYNota(v_notas.apenom, v_notas.nota);
+        ContabilizarTipoNota(v_notas.nota, cont_sus, cont_ap, cont_not, cont_sob);
+        ComprobarSiMax(v_notas.apenom, v_notas.nota, v_nom_max, v_nota_max);
+        ComprobarSiMin(v_notas.apenom, v_notas.nota, v_nom_min, v_nota_min);
+        fetch c_notas into v_notas;
+    end loop;
+    close c_notas;
+    MostrarResultados(cont_sus, cont_ap, cont_not, cont_sob,
+                      v_nom_max, v_nota_max, v_nom_min, v_nota_min);
+end principal;
+/
+
+create or replace procedure MostrarAlumnoYNota(p_nombre alumnos.apenom%type,
+                                               p_nota notas.nota%type)
+is
+begin
+    dbms_output.put_line('Nombre: '||p_nombre||' Nota: '||p_nota);
+end MostrarAlumnoYNota;
+/
+
+create or replace procedure ContabilizarTipoNota(p_nota notas.nota%type, 
+                                                 cont_sus in out number,
+                                                 cont_ap in out number,
+                                                 cont_not in out number,
+                                                 cont_sob in out number)
+is
+begin
+    if p_nota<5 then
+       cont_sus:=cont_sus+1;
+    elsif p_nota>=5 and p_nota<7 then
+       cont_ap:=cont_ap+1;
+    elsif p_nota>=7 and p_nota<9 then
+       cont_not:=cont_not+1;
+    else
+       cont_sob:=cont_sob+1;
+    end if;
+end ContabilizarTipoNota;
+/
+
+create or replace procedure ComprobarSiMax(p_nombre alumnos.apenom%type,
+                                           p_nota notas.nota%type,
+                                           v_nom_max in out alumnos.apenom%type,
+                                           v_nota_max in out notas.nota%type)
+is
+begin
+    if p_nota>v_nota_max then
+       v_nom_max:=p_nombre;
+       v_nota_max:=p_nota;
+    end if;
+end ComprobarSiMax;
+/
+
+create or replace procedure ComprobarSiMin(p_nombre alumnos.apenom%type,
+                                           p_nota notas.nota%type,
+                                           v_nom_min in out alumnos.apenom%type,
+                                           v_nota_min in out notas.nota%type)
+is
+begin
+    if p_nota<v_nota_min then
+       v_nom_min:=p_nombre;
+       v_nota_min:=p_nota;
+    end if;
+end ComprobarSiMin;
+/
+
+create or replace procedure MostrarResultados(cont_sus number, 
+                                              cont_ap number,
+                                              cont_not number,
+                                              cont_sob number,
+                                              v_nom_max alumnos.apenom%type,
+                                              v_nota_max notas.nota%type,
+                                              v_nom_min alumnos.apenom%type,
+                                              v_nota_min notas.nota%type)
+is
+begin
+    dbms_output.put_line('El número de suspensos es: '||cont_sus);
+    dbms_output.put_line('El número de aprbados es: '||cont_ap);
+    dbms_output.put_line('El número de notables es: '||cont_not);
+    dbms_output.put_line('El número de sobresalientes es: '||cont_sob);
+    dbms_output.put_line('El alumno con la nota más alta es '||v_nom_max||' con un '||v_nota_max);
+    dbms_output.put_line('El alumno con la nota más baja es '||v_nom_min||' con un '||v_nota_min);
+end MostrarResultados;
+/
+                                      
